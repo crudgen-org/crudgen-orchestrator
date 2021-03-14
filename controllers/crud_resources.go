@@ -6,6 +6,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apps "k8s.io/api/apps/v1"
+	autoscaling "k8s.io/api/autoscaling/v1"
 	core "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -24,7 +25,7 @@ func (r *CRUDReconciler) ensureDeployment(ctx context.Context, logger logr.Logge
 	case apierrors.IsNotFound(err):
 		deploy = &apps.Deployment{
 			ObjectMeta: meta.ObjectMeta{
-				Name:      crud.Name,
+				Name:      crud.DeploymentName(),
 				Namespace: crud.Namespace,
 			},
 			Spec: apps.DeploymentSpec{
@@ -173,6 +174,43 @@ func (r *CRUDReconciler) ensureIngress(ctx context.Context, logger logr.Logger, 
 
 	default:
 		// TODO: update if necessary
+	}
+	return nil
+}
+
+func (r *CRUDReconciler) ensureHPA(ctx context.Context, logger logr.Logger, crud *apiv1.CRUD) error {
+	hpa := &autoscaling.HorizontalPodAutoscaler{}
+
+	switch err := r.Get(ctx, key(crud), hpa); {
+	case apierrors.IsNotFound(err):
+		hpa = &autoscaling.HorizontalPodAutoscaler{
+			ObjectMeta: meta.ObjectMeta{
+				Name:      crud.Name,
+				Namespace: crud.Namespace,
+			},
+			Spec: autoscaling.HorizontalPodAutoscalerSpec{
+				ScaleTargetRef: autoscaling.CrossVersionObjectReference{
+					Kind:       "Deployment",
+					Name:       crud.DeploymentName(),
+					APIVersion: "apps/v1",
+				},
+				MinReplicas:                    pointer.Int32Ptr(1),
+				MaxReplicas:                    10,
+				TargetCPUUtilizationPercentage: pointer.Int32Ptr(80),
+			},
+		}
+		if err := controllerutil.SetControllerReference(crud, hpa, r.Scheme); err != nil {
+			return errors.Wrap(err, "could not set owner reference on hpa")
+		}
+		if err := r.Create(ctx, hpa); err != nil {
+			return errors.Wrap(err, "could not update hpa")
+		}
+
+	case err != nil:
+		return errors.Wrap(err, "could not retrieve hpa")
+
+	default:
+		// TODO change this if crud changes
 	}
 	return nil
 }

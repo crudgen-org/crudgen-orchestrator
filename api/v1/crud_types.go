@@ -69,6 +69,10 @@ func (c *CRUD) ServiceName() string {
 	return c.Name
 }
 
+func (c *CRUD) DeploymentName() string {
+	return c.Name
+}
+
 func (c *CRUD) TLSSecretName() string {
 	return fmt.Sprintf("%s-tls", c.Name)
 }

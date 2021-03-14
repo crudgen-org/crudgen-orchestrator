@@ -86,6 +86,9 @@ func (r *CRUDReconciler) reconcile(ctx context.Context, logger logr.Logger, crud
 	if err := r.ensureIngress(ctx, logger, crud); err != nil {
 		return ctrl.Result{}, err
 	}
+	if err := r.ensureHPA(ctx, logger, crud); err != nil {
+		return ctrl.Result{}, err
+	}
 	if !crud.Status.Deployed {
 		crud.Status.Deployed = true
 		if err := r.Update(ctx, crud); err != nil {
