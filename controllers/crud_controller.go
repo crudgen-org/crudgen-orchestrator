@@ -36,7 +36,8 @@ type CRUDReconciler struct {
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 
-	RootDomain string
+	RootDomain    string
+	ClusterIssuer string
 }
 
 func key(object meta.Object) types.NamespacedName {

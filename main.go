@@ -49,15 +49,19 @@ func init() {
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
-	var rootDomain string
+	var rootDomain, clusterIssuer string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&rootDomain, "root-domain", "", "[Required] Root domain used for ingresses")
+	flag.StringVar(&clusterIssuer, "cluster-issuer", "", "[Required] Name of the cluster issuer")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.Parse()
 	if rootDomain == "" {
 		log.Fatal("--root-domain flag must be set.")
+	}
+	if clusterIssuer == "" {
+		log.Fatal("--cluster-issuer must be set.")
 	}
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -75,10 +79,11 @@ func main() {
 	}
 
 	if err = (&controllers.CRUDReconciler{
-		Client:     mgr.GetClient(),
-		Log:        ctrl.Log.WithName("controllers").WithName("CRUD"),
-		Scheme:     mgr.GetScheme(),
-		RootDomain: rootDomain,
+		Client:        mgr.GetClient(),
+		Log:           ctrl.Log.WithName("controllers").WithName("CRUD"),
+		Scheme:        mgr.GetScheme(),
+		RootDomain:    rootDomain,
+		ClusterIssuer: clusterIssuer,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CRUD")
 		os.Exit(1)

@@ -151,6 +151,9 @@ func (r *CRUDReconciler) ensureIngress(ctx context.Context, logger logr.Logger, 
 			},
 		}
 		if crud.Spec.EnableTLS {
+			ingress.Annotations = map[string]string{
+				"cert-manager.io/cluster-issuer": r.ClusterIssuer,
+			}
 			ingress.Spec.TLS = []networking.IngressTLS{
 				{
 					Hosts:      []string{fullDomain},
