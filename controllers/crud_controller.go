@@ -20,7 +20,10 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/api/errors"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -34,15 +37,62 @@ type CRUDReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+func key(object meta.Object) types.NamespacedName {
+	return types.NamespacedName{
+		Namespace: object.GetNamespace(),
+		Name:      object.GetName(),
+	}
+}
+
 // +kubebuilder:rbac:groups=api.crudgen.org,resources=cruds,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=api.crudgen.org,resources=cruds/status,verbs=get;update;patch
 
 func (r *CRUDReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("crud", req.NamespacedName)
+	ctx := context.Background()
+	logger := r.Log.WithValues("crud", req.NamespacedName)
 
-	// your logic here
+	crud := &apiv1.CRUD{}
+	switch err := r.Get(ctx, req.NamespacedName, crud); {
+	case errors.IsNotFound(err):
+		logger.Info("object to reconcile does not exists", "object", req.NamespacedName)
+		return ctrl.Result{}, nil
 
+	case err != nil:
+		logger.Error(err, "could not retrieve crud object", "object", req.NamespacedName)
+		return ctrl.Result{}, err
+
+	case !crud.GetDeletionTimestamp().IsZero():
+		return r.reconcileCleanUp(ctx, logger, crud)
+
+	default:
+		if !crud.Status.ImageReady {
+			logger.Info("CRUD resource not ready for deployment. stopping...")
+			return ctrl.Result{}, nil
+		}
+		return r.reconcile(ctx, logger, crud)
+	}
+}
+
+func (r *CRUDReconciler) reconcile(ctx context.Context, logger logr.Logger, crud *apiv1.CRUD) (ctrl.Result, error) {
+	if err := r.ensureDeployment(ctx, logger, crud); err != nil {
+		return ctrl.Result{}, err
+	}
+	if err := r.ensureService(ctx, logger, crud); err != nil {
+		return ctrl.Result{}, err
+	}
+	if err := r.ensureIngress(ctx, logger, crud); err != nil {
+		return ctrl.Result{}, err
+	}
+	if !crud.Status.Deployed {
+		crud.Status.Deployed = true
+		if err := r.Update(ctx, crud); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *CRUDReconciler) reconcileCleanUp(ctx context.Context, logger logr.Logger, crud *apiv1.CRUD) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 

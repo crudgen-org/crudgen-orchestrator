@@ -16,7 +16,20 @@ spec:
     singular: crud
   scope: Namespaced
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .status.image
+      name: Image
+      type: string
+    - jsonPath: .status.imageReady
+      name: Ready
+      type: boolean
+    - jsonPath: .status.deployed
+      name: Deployed
+      type: boolean
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
     schema:
       openAPIV3Schema:
         description: CRUD is the Schema for the cruds API
@@ -53,17 +66,24 @@ spec:
             properties:
               apiDescriptionHash:
                 type: string
+              deployed:
+                type: boolean
               image:
                 type: string
               imageReady:
                 default: false
                 type: boolean
+              port:
+                format: int32
+                type: integer
             required:
+            - deployed
             - imageReady
             type: object
         type: object
     served: true
     storage: true
+    subresources: {}
 status:
   acceptedNames:
     kind: ""

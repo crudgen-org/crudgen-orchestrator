@@ -35,10 +35,16 @@ type CRUDStatus struct {
 	// +kubebuilder:default:=false
 	ImageReady         bool   `json:"imageReady"`
 	Image              string `json:"image,omitempty"`
+	Port               int32  `json:"port,omitempty"`
 	APIDescriptionHash string `json:"apiDescriptionHash,omitempty"`
+	Deployed           bool   `json:"deployed"`
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Image",type="string",JSONPath=".status.image"
+// +kubebuilder:printcolumn:name="Ready",type="boolean",JSONPath=".status.imageReady"
+// +kubebuilder:printcolumn:name="Deployed",type="boolean",JSONPath=".status.deployed"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // CRUD is the Schema for the cruds API
 type CRUD struct {
@@ -47,6 +53,12 @@ type CRUD struct {
 
 	Spec   CRUDSpec   `json:"spec,omitempty"`
 	Status CRUDStatus `json:"status,omitempty"`
+}
+
+func (c *CRUD) LabelSelectors() map[string]string {
+	return map[string]string{
+		"api.crudgen.org/selector": c.Name,
+	}
 }
 
 // +kubebuilder:object:root=true
