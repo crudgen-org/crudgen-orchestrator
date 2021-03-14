@@ -1,0 +1,7 @@
+apiVersion: api.crudgen.org/v1
+kind: CRUD
+metadata:
+  name: crud-sample
+spec:
+  # Add fields here
+  foo: bar

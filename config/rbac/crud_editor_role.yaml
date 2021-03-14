@@ -1,0 +1,24 @@
+# permissions for end users to edit cruds.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crud-editor-role
+rules:
+- apiGroups:
+  - api.crudgen.org
+  resources:
+  - cruds
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - api.crudgen.org
+  resources:
+  - cruds/status
+  verbs:
+  - get

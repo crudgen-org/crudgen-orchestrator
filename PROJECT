@@ -1,0 +1,7 @@
+domain: crudgen.org
+repo: github.com/crudgen-org/crudgen-orchestrator
+resources:
+- group: api
+  kind: CRUD
+  version: v1
+version: "2"
