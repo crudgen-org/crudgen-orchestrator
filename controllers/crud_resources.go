@@ -2,11 +2,12 @@ package controllers
 
 import (
 	"context"
-
+	"fmt"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apps "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
+	networking "k8s.io/api/networking/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -82,7 +83,7 @@ func (r *CRUDReconciler) ensureService(ctx context.Context, logger logr.Logger, 
 	case apierrors.IsNotFound(err):
 		service := &core.Service{
 			ObjectMeta: meta.ObjectMeta{
-				Name:      crud.Name,
+				Name:      crud.ServiceName(),
 				Namespace: crud.Namespace,
 			},
 			Spec: core.ServiceSpec{
@@ -116,5 +117,59 @@ func (r *CRUDReconciler) ensureService(ctx context.Context, logger logr.Logger, 
 }
 
 func (r *CRUDReconciler) ensureIngress(ctx context.Context, logger logr.Logger, crud *apiv1.CRUD) error {
+	fullDomain := fmt.Sprintf("%s.%s", crud.Spec.DomainPrefix, r.RootDomain)
+	ingress := &networking.Ingress{}
+
+	switch err := r.Get(ctx, key(crud), ingress); {
+	case apierrors.IsNotFound(err):
+		ingress = &networking.Ingress{
+			ObjectMeta: meta.ObjectMeta{
+				Name:      crud.Name,
+				Namespace: crud.Namespace,
+			},
+			Spec: networking.IngressSpec{
+				TLS: nil,
+				Rules: []networking.IngressRule{
+					{
+						Host: fullDomain,
+						IngressRuleValue: networking.IngressRuleValue{
+							HTTP: &networking.HTTPIngressRuleValue{
+								Paths: []networking.HTTPIngressPath{
+									{
+										Backend: networking.IngressBackend{
+											ServiceName: crud.ServiceName(),
+											ServicePort: intstr.IntOrString{
+												IntVal: crud.Status.Port,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		if crud.Spec.EnableTLS {
+			ingress.Spec.TLS = []networking.IngressTLS{
+				{
+					Hosts:      []string{fullDomain},
+					SecretName: crud.TLSSecretName(),
+				},
+			}
+		}
+		if err := controllerutil.SetControllerReference(crud, ingress, r.Scheme); err != nil {
+			return errors.Wrap(err, "could not set controller reference on ingress")
+		}
+		if err := r.Create(ctx, ingress); err != nil {
+			return errors.Wrap(err, "could not create ingress")
+		}
+
+	case err != nil:
+		return errors.Wrap(err, "could not get ingress")
+
+	default:
+		// TODO: update if necessary
+	}
 	return nil
 }

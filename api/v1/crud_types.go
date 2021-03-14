@@ -17,6 +17,8 @@ limitations under the License.
 package v1
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -33,11 +35,13 @@ type CRUDSpec struct {
 // CRUDStatus defines the observed state of CRUD
 type CRUDStatus struct {
 	// +kubebuilder:default:=false
+	// +kubebuilder:validation:Optional
 	ImageReady         bool   `json:"imageReady"`
 	Image              string `json:"image,omitempty"`
 	Port               int32  `json:"port,omitempty"`
 	APIDescriptionHash string `json:"apiDescriptionHash,omitempty"`
-	Deployed           bool   `json:"deployed"`
+	// +kubebuilder:validation:Optional
+	Deployed bool `json:"deployed"`
 }
 
 // +kubebuilder:object:root=true
@@ -59,6 +63,14 @@ func (c *CRUD) LabelSelectors() map[string]string {
 	return map[string]string{
 		"api.crudgen.org/selector": c.Name,
 	}
+}
+
+func (c *CRUD) ServiceName() string {
+	return c.Name
+}
+
+func (c *CRUD) TLSSecretName() string {
+	return fmt.Sprintf("%s-tls", c.Name)
 }
 
 // +kubebuilder:object:root=true

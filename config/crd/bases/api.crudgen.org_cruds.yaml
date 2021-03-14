@@ -76,9 +76,6 @@ spec:
               port:
                 format: int32
                 type: integer
-            required:
-            - deployed
-            - imageReady
             type: object
         type: object
     served: true

@@ -17,7 +17,7 @@ manager: generate fmt vet
 	go build -o bin/manager main.go
 
 run: generate fmt vet manifests
-	go run ./main.go
+	go run ./main.go --root-domain aaas.crudgen.org
 
 install: manifests
 	kustomize build config/crd | kubectl apply -f -

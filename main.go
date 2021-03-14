@@ -18,8 +18,10 @@ package main
 
 import (
 	"flag"
+	"log"
 	"os"
 
+	networking "k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -40,17 +42,23 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
 	_ = apiv1.AddToScheme(scheme)
+	_ = networking.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
+	var rootDomain string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&rootDomain, "root-domain", "", "[Required] Root domain used for ingresses")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.Parse()
+	if rootDomain == "" {
+		log.Fatal("--root-domain flag must be set.")
+	}
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
@@ -67,9 +75,10 @@ func main() {
 	}
 
 	if err = (&controllers.CRUDReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("CRUD"),
-		Scheme: mgr.GetScheme(),
+		Client:     mgr.GetClient(),
+		Log:        ctrl.Log.WithName("controllers").WithName("CRUD"),
+		Scheme:     mgr.GetScheme(),
+		RootDomain: rootDomain,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CRUD")
 		os.Exit(1)
