@@ -2,7 +2,6 @@ apiVersion: api.crudgen.org/v1
 kind: CRUD
 metadata:
   name: sample
-  namespace: default
 spec:
   apiDescription: "asfd"
   domainPrefix: "dupsdups"

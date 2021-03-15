@@ -65,6 +65,13 @@ func (c *CRUD) LabelSelectors() map[string]string {
 	}
 }
 
+func (c *CRUD) DatabaseLabel() map[string]string {
+	return map[string]string{
+		"app":  "postgres",
+		"crud": c.GetName(),
+	}
+}
+
 func (c *CRUD) ServiceName() string {
 	return c.Name
 }
@@ -75,6 +82,18 @@ func (c *CRUD) DeploymentName() string {
 
 func (c *CRUD) TLSSecretName() string {
 	return fmt.Sprintf("%s-tls", c.Name)
+}
+
+func (c *CRUD) DatabaseServiceName() string {
+	return fmt.Sprintf("%s-database", c.Name)
+}
+
+func (c *CRUD) DatabaseStatefulName() string {
+	return c.Name
+}
+
+func (c *CRUD) DatabaseConfigMapName() string {
+	return "pgconfig" // TODO fix this hard code
 }
 
 // +kubebuilder:object:root=true

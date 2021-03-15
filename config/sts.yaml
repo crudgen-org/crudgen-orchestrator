@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pgstateful
+spec:
+  serviceName: "Postgres"
+  replicas: 2
+  selector:
+    matchLabels:
+      app: Postgres
+  template:
+    metadata:
+      labels:
+        app: Postgres
+    spec:
+      containers:
+        - name: Postgres
+          image: Postgres:latest
+          envFrom:
+          - configMapRef:
+              name: pgconfig
+          ports:
+          - containerPort: 5432
+            name: ordb
+          resources: {}
+## this will persist the data of the Postgres database
+          volumeMounts:
+            - name: ordb
+              mountPath: /var/lib/PostgreSQL/data
+              subPath: Postgres
+  volumeClaimTemplates:
+    - metadata:
+        name: ordb
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: hiops
+        resources:
+          requests:
+            storage: 3Gi
