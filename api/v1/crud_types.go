@@ -96,6 +96,10 @@ func (c *CRUD) DatabaseConfigMapName() string {
 	return "pgconfig" // TODO fix this hard code
 }
 
+func (c *CRUD) DatabaseHost() string {
+	return fmt.Sprintf("psql://objectrocket:orkb123@%s:5432/ordb", c.DatabaseServiceName())
+}
+
 // +kubebuilder:object:root=true
 
 // CRUDList contains a list of CRUD

@@ -42,6 +42,12 @@ func (r *CRUDReconciler) ensureDeployment(ctx context.Context, logger logr.Logge
 							{
 								Name:  crud.Name,
 								Image: crud.Status.Image,
+								Env: []core.EnvVar{
+									{
+										Name:  "DATABASE_URL",
+										Value: crud.DatabaseHost(),
+									},
+								},
 							},
 						},
 					},
