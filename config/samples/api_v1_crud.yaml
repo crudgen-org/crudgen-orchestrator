@@ -2,11 +2,102 @@ apiVersion: api.crudgen.org/v1
 kind: CRUD
 metadata:
   name: sample
+  namespace: default
 spec:
-  apiDescription: "asfd"
+  apiDescription: |-
+    {
+      "name": "todolist",
+      "version": "0.1.0",
+      "deploy_strategy": {
+        "hostname": "*",
+        "port": 8080
+      },
+      "apps": [
+        {
+          "name": "todo",
+          "namespace": "",
+          "models": [
+            {
+              "name": "ListItem",
+              "fields": [
+                {
+                  "name": "text",
+                  "field_type": "CharField",
+                  "max_length": 200
+                },
+                {
+                  "name": "checked",
+                  "field_type": "BooleanField"
+                },
+                {
+                  "name": "list",
+                  "field_type": "ForeignKey",
+                  "target": "todo.List",
+                  "related_name": "items"
+                }
+              ],
+              "serializers": [
+                {
+                  "name": "ListItemSerializer",
+                  "fields": [
+                    "id",
+                    "text",
+                    "checked"
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "List",
+              "fields": [
+                {
+                  "name": "title",
+                  "field_type": "CharField",
+                  "max_length": 30
+                },
+                {
+                  "name": "description",
+                  "field_type": "CharField",
+                  "max_length": 30
+                }
+              ],
+              "serializers": [
+                {
+                  "name": "ToDoListSerializer",
+                  "fields": [
+                    "id",
+                    "title",
+                    "description",
+                    "items"
+                  ],
+                  "extras": {
+                    "items": {
+                      "serializer": "ListItemSerializer"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "endpoints": [
+            {
+              "path": "lists",
+              "endpoint_type": "simple_data_access",
+              "model": "List",
+              "serializer": "ToDoListSerializer",
+              "actions": [
+                {
+                  "endpoint_type": "nested_foreign_simple_data_access",
+                  "path": "todo",
+                  "serializer": "ListItemSerializer",
+                  "model": "ListItem",
+                  "parent_field": "list"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
   domainPrefix: "dupsdups"
   enableTLS: true
-status:
-  imageReady: true
-  image: docker.repos.balad.ir/library/ubuntu:20.04
-  port: 8080
